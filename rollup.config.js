@@ -3,11 +3,13 @@ import commonjs from 'rollup-plugin-commonjs'
 import external from 'rollup-plugin-peer-deps-external'
 import resolve from '@rollup/plugin-node-resolve'
 import { terser } from 'rollup-plugin-terser'
-import typescript from '@rollup/plugin-typescript'
+import typescript from 'rollup-plugin-typescript2'
 
 import pkg from './package.json'
 
-const tsconfig = { declaration: true, jsx: 'react', isolatedModules: false }
+const tsconfig = {
+  compilerOptions: { declaration: true, jsx: 'react', isolatedModules: false },
+}
 
 // eslint-disable-next-line import/no-default-export
 export default {
@@ -29,7 +31,12 @@ export default {
       includeDependencies: true,
     }),
     resolve(),
-    typescript(tsconfig),
+    typescript({
+      rollupCommonJSResolveHack: true,
+      exclude: ['**/__tests__/**', '**/pages/**'],
+      clean: true,
+      tsconfigOverride: tsconfig,
+    }),
     babel({
       presets: ['react-app'],
       plugins: [
