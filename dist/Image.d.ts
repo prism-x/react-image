@@ -20,6 +20,8 @@ declare type Props = {
     imgClass?: string;
     placeholderStyle?: object;
     placeholderClass?: string;
+    sizerStyle?: object;
+    sizerClass?: string;
     bgColor?: string;
     alt?: string;
     fit?: 'cover' | 'contain';

@@ -1,6 +1,6 @@
 {
   "name": "@prismx/react-image",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Responsive, lazy, progressive image loader",
   "author": "João Magalhães",
   "license": "MIT",
