@@ -28,6 +28,8 @@ type Props = {
   imgClass?: string
   placeholderStyle?: object
   placeholderClass?: string
+  sizerStyle?: object
+  sizerClass?: string
   bgColor?: string
   alt?: string
   fit?: 'cover' | 'contain'
@@ -131,7 +133,7 @@ export function Image(props: Props): ReactElement {
    *****************************************************************************/
   return (
     <div style={{ position: 'relative', overflow: 'hidden' }} className={props.className}>
-      <div style={{ width: '100%', paddingBottom: imgHeight }} ref={node} />
+      <div style={{ width: '100%', paddingBottom: imgHeight, ...props.sizerStyle }} ref={node} className={props.sizerClass} />
 
       {props.bgColor && (
         <div
