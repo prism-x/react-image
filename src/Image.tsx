@@ -1,5 +1,5 @@
 /* eslint max-lines: "off" */
-import React, { CSSProperties, ReactElement, useEffect, useRef, useState } from 'react'
+import React, { CSSProperties, ReactElement, useLayoutEffect, useRef, useState } from 'react'
 
 import {
   getSizes,
@@ -77,7 +77,7 @@ export function Image(props: Props): ReactElement {
   /*****************************************************************************
    * Effects
    *****************************************************************************/
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!seenBefore) {
       setState({ sizes: props.sizes || getSizes(node.current, props.src) })
     }
@@ -133,7 +133,11 @@ export function Image(props: Props): ReactElement {
    *****************************************************************************/
   return (
     <div style={{ position: 'relative', overflow: 'hidden' }} className={props.className}>
-      <div style={{ width: '100%', paddingBottom: imgHeight, ...props.sizerStyle }} ref={node} className={props.sizerClass} />
+      <div
+        style={{ width: '100%', paddingBottom: imgHeight, ...props.sizerStyle }}
+        ref={node}
+        className={props.sizerClass}
+      />
 
       {props.bgColor && (
         <div
