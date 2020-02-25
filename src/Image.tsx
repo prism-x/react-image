@@ -1,5 +1,5 @@
 /* eslint max-lines: "off" */
-import React, { CSSProperties, ReactElement, useLayoutEffect, useRef, useState } from 'react'
+import React, { CSSProperties, ReactElement, useRef, useState } from 'react'
 
 import {
   getSizes,
@@ -9,6 +9,7 @@ import {
   hasIOSupport,
   setImageCache,
   getImageCache,
+  isomorphicLayoutEffect,
 } from './support'
 
 type Props = {
@@ -56,7 +57,7 @@ export function Image(props: Props): ReactElement {
    * State
    *****************************************************************************/
   const [state, changeState] = useState({
-    sizes: seenBefore ? getImageCache(props.src) : props.sizes,
+    sizes: seenBefore ? getImageCache(props.src) : props.sizes || 100,
     isVisible: seenBefore || isCritical || hasNativeLazyLoadSupport || !hasIOSupport,
     shouldFadeIn: !seenBefore || props.fadeIn,
     imgLoaded: seenBefore || false,
@@ -77,7 +78,7 @@ export function Image(props: Props): ReactElement {
   /*****************************************************************************
    * Effects
    *****************************************************************************/
-  useLayoutEffect(() => {
+  isomorphicLayoutEffect(() => {
     if (!seenBefore) {
       setState({ sizes: props.sizes || getSizes(node.current, props.src) })
     }

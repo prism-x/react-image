@@ -1,3 +1,9 @@
+import { useEffect, useLayoutEffect } from 'react'
+
+export const isBrowser = typeof window !== 'undefined'
+
+export const isomorphicLayoutEffect = isBrowser ? useLayoutEffect : useEffect
+
 const imageCache = Object.create({})
 
 export function getImageCache(id: string): null | number {
@@ -31,7 +37,8 @@ export function getSizes(el: any, src): number {
 
 export const hasNativeLazyLoadSupport =
   typeof HTMLImageElement !== 'undefined' && 'loading' in HTMLImageElement.prototype
-export const hasIOSupport = window.IntersectionObserver
+
+export const hasIOSupport = isBrowser && window.IntersectionObserver
 
 export function getIO(node, cb): IntersectionObserver {
   const observer = new window.IntersectionObserver(

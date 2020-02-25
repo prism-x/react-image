@@ -1,2 +1,162 @@
-import e,{useRef as t,useState as i,useLayoutEffect as n}from"react";const s=Object.create({});function o(e){return!!s[e]&&s[e][window.location.href]||null}function r(e,t){if(o(t))return o(t)||100;let i=e;if(i.getBoundingClientRect().width<32)for(i=i.parentNode;"BODY"!==i.tagName&&i.getBoundingClientRect().width<=32;)i=i.parentNode;return Math.ceil(i.getBoundingClientRect().width/window.innerWidth*100)}const a="undefined"!=typeof HTMLImageElement&&"loading"in HTMLImageElement.prototype,l=window.IntersectionObserver;const c=e=>Object.entries(e).map(([e,t])=>`${t} ${e}w`).join(", ");function d(d){const u=t(null),m=t(null),g=d.aspectRatio?`${100/d.aspectRatio}%`:d.height,p="eager"===d.loading||d.critical,h=!!o(d.src),[w,f]=i({sizes:h?o(d.src):d.sizes,isVisible:h||p||a||!l,shouldFadeIn:!h||d.fadeIn,imgLoaded:h||!1}),b=e=>f(t=>({...t,...e}));function v(){var e,t;h||(e=d.src,t=Number(w.sizes),s[e]={...s[e]||{},[window.location.href]:t},b({imgLoaded:!0}))}n(()=>{h||b({sizes:d.sizes||r(m.current,d.src)});const e=!w.isVisible&&function(e,t){const i=new window.IntersectionObserver(([n])=>{(n.isIntersecting||n.intersectionRatio>0)&&(i.unobserve(e),t())},{rootMargin:"200px"});return i.observe(e),i}(m.current,()=>b({isVisible:!0}));if(p){const e=u.current;e&&e.complete&&v()}return()=>{e&&e.unobserve(m.current)}},[]);const y=!w.shouldFadeIn||w.imgLoaded,z={position:"absolute",top:0,left:0,width:"100%",height:"100%",objectFit:d.fit,objectPosition:d.position},I={opacity:y?1:0,transition:w.shouldFadeIn?`opacity ${d.durationFadeIn}ms`:"none",...d.imgStyle},S={transition:d.transparent&&w.shouldFadeIn?`opacity ${d.durationFadeIn}ms`:void 0,transitionDelay:d.transparent?"0":`${d.durationFadeIn}ms`},C={opacity:w.imgLoaded?0:1,...w.shouldFadeIn&&S,...d.imgStyle,...d.placeholderStyle};return e.createElement("div",{style:{position:"relative",overflow:"hidden"},className:d.className},e.createElement("div",{style:{width:"100%",paddingBottom:g,...d.sizerStyle},ref:m,className:d.sizerClass}),d.bgColor&&e.createElement("div",{className:d.placeholderClass,style:{backgroundColor:d.bgColor,...z,...C}}),!d.bgColor&&d.placeholder&&e.createElement("img",{src:d.placeholder,alt:d.alt,className:d.placeholderClass,style:{...z,...C}}),w.isVisible&&e.createElement("picture",null,d.webpSrcSet&&e.createElement("source",{type:"image/webp",srcSet:c(d.webpSrcSet),sizes:w.sizes?`${w.sizes}vw`:void 0}),d.srcSet&&e.createElement("source",{srcSet:c(d.srcSet),sizes:w.sizes?`${w.sizes}vw`:void 0}),e.createElement("img",{ref:u,src:d.src,className:d.imgClass,alt:d.alt,sizes:`${w.sizes}vw`,loading:p?"eager":d.loading,onLoad:v,style:{...z,...I}})))}d.defaultProps={loading:"lazy",fadeIn:!0,fit:"cover",position:"center",height:"100%",durationFadeIn:500,alt:""};export{d as Image};
+import React, { useLayoutEffect, useEffect, useRef, useState } from 'react';
+
+const isBrowser = typeof window !== 'undefined';
+const isomorphicLayoutEffect = isBrowser ? useLayoutEffect : useEffect;
+const imageCache = Object.create({});
+function getImageCache(id) {
+    return (!!imageCache[id] && imageCache[id][window.location.href]) || null;
+}
+function setImageCache(id, sizes) {
+    imageCache[id] = {
+        ...(imageCache[id] || {}),
+        ...{ [window.location.href]: sizes },
+    };
+}
+function getSizes(el, src) {
+    if (getImageCache(src)) {
+        return getImageCache(src) || 100;
+    }
+    const min = 32;
+    let currentNode = el;
+    if (currentNode.getBoundingClientRect().width < min) {
+        currentNode = currentNode.parentNode;
+        while (currentNode.tagName !== 'BODY' && currentNode.getBoundingClientRect().width <= min) {
+            currentNode = currentNode.parentNode;
+        }
+    }
+    return Math.ceil((currentNode.getBoundingClientRect().width / window.innerWidth) * 100);
+}
+const hasNativeLazyLoadSupport = typeof HTMLImageElement !== 'undefined' && 'loading' in HTMLImageElement.prototype;
+const hasIOSupport = isBrowser && window.IntersectionObserver;
+function getIO(node, cb) {
+    const observer = new window.IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting || entry.intersectionRatio > 0) {
+            observer.unobserve(node);
+            cb();
+        }
+    }, { rootMargin: '200px' });
+    observer.observe(node);
+    return observer;
+}
+const generateSources = (object) => Object.entries(object)
+    .map(([size, url]) => `${url} ${size}w`)
+    .join(', ');
+
+/* eslint max-lines: "off" */
+// eslint-disable-next-line complexity
+function Image(props) {
+    /*****************************************************************************
+     * Refs
+     *****************************************************************************/
+    const imgRef = useRef(null);
+    const node = useRef(null);
+    /*****************************************************************************
+     * Variables
+     *****************************************************************************/
+    const imgHeight = props.aspectRatio ? `${100 / props.aspectRatio}%` : props.height;
+    const isCritical = props.loading === 'eager' || props.critical;
+    const seenBefore = !!getImageCache(props.src);
+    /*****************************************************************************
+     * State
+     *****************************************************************************/
+    const [state, changeState] = useState({
+        sizes: seenBefore ? getImageCache(props.src) : (props.sizes || 100),
+        isVisible: seenBefore || isCritical || hasNativeLazyLoadSupport || !hasIOSupport,
+        shouldFadeIn: !seenBefore || props.fadeIn,
+        imgLoaded: seenBefore || false,
+    });
+    /*****************************************************************************
+     * Functions
+     *****************************************************************************/
+    const setState = (value) => changeState(state => ({ ...state, ...value }));
+    function handleImageLoaded() {
+        if (!seenBefore) {
+            setImageCache(props.src, Number(state.sizes));
+            setState({ imgLoaded: true });
+        }
+    }
+    /*****************************************************************************
+     * Effects
+     *****************************************************************************/
+    isomorphicLayoutEffect(() => {
+        if (!seenBefore) {
+            setState({ sizes: props.sizes || getSizes(node.current, props.src) });
+        }
+        const observer = !state.isVisible && getIO(node.current, () => setState({ isVisible: true }));
+        if (isCritical) {
+            const img = imgRef.current;
+            if (img && img.complete) {
+                handleImageLoaded();
+            }
+        }
+        return () => {
+            if (observer) {
+                observer.unobserve(node.current);
+            }
+        };
+    }, []);
+    /*****************************************************************************
+     * Styles
+     *****************************************************************************/
+    const shouldReveal = !state.shouldFadeIn || state.imgLoaded;
+    const defaultImageStyles = {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        objectFit: props.fit,
+        objectPosition: props.position,
+    };
+    const imageStyle = {
+        opacity: shouldReveal ? 1 : 0,
+        transition: state.shouldFadeIn ? `opacity ${props.durationFadeIn}ms` : 'none',
+        ...props.imgStyle,
+    };
+    const delayHideStyle = {
+        transition: props.transparent && state.shouldFadeIn ? `opacity ${props.durationFadeIn}ms` : undefined,
+        transitionDelay: props.transparent ? '0' : `${props.durationFadeIn}ms`,
+    };
+    const imagePlaceholderStyle = {
+        opacity: state.imgLoaded ? 0 : 1,
+        ...(state.shouldFadeIn && delayHideStyle),
+        ...props.imgStyle,
+        ...props.placeholderStyle,
+    };
+    /*****************************************************************************
+     * Render
+     *****************************************************************************/
+    return (React.createElement("div", { style: { position: 'relative', overflow: 'hidden' }, className: props.className },
+        React.createElement("div", { style: { width: '100%', paddingBottom: imgHeight, ...props.sizerStyle }, ref: node, className: props.sizerClass }),
+        props.bgColor && (React.createElement("div", { className: props.placeholderClass, style: {
+                backgroundColor: props.bgColor,
+                ...defaultImageStyles,
+                ...imagePlaceholderStyle,
+            } })),
+        !props.bgColor && props.placeholder && (React.createElement("img", { src: props.placeholder, alt: props.alt, className: props.placeholderClass, style: {
+                ...defaultImageStyles,
+                ...imagePlaceholderStyle,
+            } })),
+        state.isVisible && (React.createElement("picture", null,
+            props.webpSrcSet && (React.createElement("source", { type: "image/webp", srcSet: generateSources(props.webpSrcSet), sizes: state.sizes ? `${state.sizes}vw` : undefined })),
+            props.srcSet && (React.createElement("source", { srcSet: generateSources(props.srcSet), sizes: state.sizes ? `${state.sizes}vw` : undefined })),
+            React.createElement("img", { ref: imgRef, src: props.src, className: props.imgClass, alt: props.alt, sizes: `${state.sizes}vw`, 
+                // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+                // @ts-ignore
+                loading: isCritical ? 'eager' : props.loading, onLoad: handleImageLoaded, style: {
+                    ...defaultImageStyles,
+                    ...imageStyle,
+                } })))));
+}
+Image.defaultProps = {
+    loading: 'lazy',
+    fadeIn: true,
+    fit: 'cover',
+    position: 'center',
+    height: '100%',
+    durationFadeIn: 500,
+    alt: '',
+};
+
+export { Image };
 //# sourceMappingURL=index.es.js.map
